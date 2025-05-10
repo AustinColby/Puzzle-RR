@@ -17,11 +17,21 @@ public class NestedFieldFormatter
     /// <param name="sort">Sort the fields at each depth</param>
     public string FormatFields(string input, bool sort = false)
     {
-        // var tokens = input.Split(_specialCharacters, StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries);
-        int i = 0;
-        int currentDepth = -1;
-        
+        var nodes = ParseNodes(input);
         var sb = new StringBuilder();
+        
+        FormatNodes(sb, nodes);
+        
+        return sb.ToString();
+    }
+
+
+    private List<Node> ParseNodes(string input)
+    {
+        var rootNode = new Node();
+        
+        int i = 0;
+        var currentNode = rootNode;
 
         while (i < input.Length)
         {
@@ -31,14 +41,20 @@ public class NestedFieldFormatter
             {
                 case ',':
                     i++;
-
                     break;
                 case '(':
-                    currentDepth++;
+                    if (!currentNode.Children.Any())
+                    {
+                        currentNode.Children.Add(new Node(null, currentNode));
+                    }
+
+                    currentNode = currentNode.Children.Last();
+                    
                     i++;
                     break;
                 case ')':
-                    currentDepth--;
+                    currentNode = currentNode.Parent!;
+                    
                     i++;
                     break;
                 default:
@@ -46,26 +62,37 @@ public class NestedFieldFormatter
                     nextTokenIndex = nextTokenIndex == -1 ? input.Length : nextTokenIndex;
                     var fieldLength = nextTokenIndex - i;
                     var field = input.Substring(i, fieldLength).Trim();
-                    string padding = GetPadding(currentDepth);
 
-                    if (sb.Length > 0)
-                    {
-                        sb.AppendLine();
-                    }
+                    var node = new Node(field, currentNode);
+                    currentNode.Children.Add(node);
                     
-                    sb.Append($"{padding}{FieldPrefix}{field}");
                     i += fieldLength;
                     
                     break;
             }
         }
 
-        if (currentDepth != -1)
-        {
-            throw new Exception("The number of open and closing parenthesis does not match!");
-        }
+        return rootNode.Children;
+    }
 
-        return sb.ToString();
+
+    private static void FormatNodes(StringBuilder sb, List<Node> nodes, int depth = -1)
+    {
+        foreach (var node in nodes)
+        {
+            if (depth >= 0)
+            {
+                if (sb.Length > 0)
+                {
+                    sb.AppendLine();
+                }
+
+                var padding = GetPadding(depth);
+                sb.Append($"{padding}{FieldPrefix}{node.Field}");
+            }
+
+            FormatNodes(sb, node.Children, depth + 1);
+        }
     }
 
 
