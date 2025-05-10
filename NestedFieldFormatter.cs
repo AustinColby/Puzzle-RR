@@ -17,15 +17,35 @@ public class NestedFieldFormatter
     /// <param name="sort">Sort the fields at each depth</param>
     public string FormatFields(string input, bool sort = false)
     {
-        var nodes = ParseNodes(input);
-        var sb = new StringBuilder();
+        if (string.IsNullOrWhiteSpace(input))
+        {
+            return string.Empty;
+        }
+
+        input = input.Trim();
+
+        if (!input.StartsWith('(') || !input.EndsWith(')'))
+        {
+            throw new ArgumentException("The input should start and end with open and closing parenthesis!", nameof(input));
+        }
         
+        var nodes = ParseNodes(input);
+
+        if (sort)
+        {
+            SortNodes(nodes);
+        }
+        
+        var sb = new StringBuilder();
         FormatNodes(sb, nodes);
         
         return sb.ToString();
     }
 
 
+    /// <summary>
+    /// Parses an input string into a tree of Nodes
+    /// </summary>
     private List<Node> ParseNodes(string input)
     {
         var rootNode = new Node();
@@ -75,7 +95,23 @@ public class NestedFieldFormatter
         return rootNode.Children;
     }
 
+    /// <summary>
+    /// Sorts each level of nodes alphabetically by Field name
+    /// </summary>
+    /// <param name="nodes">List of fields to sort</param>
+    private static void SortNodes(List<Node> nodes)
+    {
+        foreach (var node in nodes)
+        {
+            node.Children.Sort((node1, node2) => node1.Field.CompareTo(node2.Field));
+            SortNodes(node.Children);
+        }
+    }
 
+
+    /// <summary>
+    /// Appends fields to the StringBuilder padded to their current depth
+    /// </summary>
     private static void FormatNodes(StringBuilder sb, List<Node> nodes, int depth = -1)
     {
         foreach (var node in nodes)
@@ -96,6 +132,9 @@ public class NestedFieldFormatter
     }
 
 
+    /// <summary>
+    /// Returns a padding string representing the current depth of a field
+    /// </summary>
     private static string GetPadding(int depth)
     {
         if (depth < 0)

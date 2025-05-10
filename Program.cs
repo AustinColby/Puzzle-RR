@@ -15,6 +15,10 @@ internal class Program
         var formatter = new NestedFieldFormatter();
 
         var formattedString = formatter.FormatFields(inputString);
+        var sortedString = formatter.FormatFields(inputString, true);
+        
         Console.WriteLine(formattedString);
+        Console.WriteLine();
+        Console.WriteLine(sortedString);
     } 
 }
